@@ -1,2 +1,7 @@
 *.class
 *.log
+.idea/
+arc.log.txt
+lib/
+out/
+password_vault.iml
