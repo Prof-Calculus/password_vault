@@ -24,9 +24,9 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
     MainMenuChoice.values.foreach(
       choice => print(s"Enter ${choice.id} to $choice\n")
     )
+    val inp = interface.getString("Your input").toInt
     MainMenuChoice.values.find(
-      _.id ==
-        interface.getString("Your input").toInt
+      _.id == inp
     ).getOrElse(
       throw new RuntimeException("Illegal input")
     )
