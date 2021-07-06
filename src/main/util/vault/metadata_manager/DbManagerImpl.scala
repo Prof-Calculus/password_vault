@@ -1,3 +1,7 @@
+/*
+ *  Created on: July 6, 2021
+ *      Author: Srinivasan PS
+ */
 package util.vault.metadata_manager
 
 import java.nio.file.Files
@@ -17,14 +21,12 @@ object DbManagerImpl {
   def getOrCreateDbManager(
     username: String,
   ): MetadataManager = {
-
     val db = new DbManagerImpl(
       Constants.MAC_WORKING_DIRECTORY_PATH,
       username,
     )
     db.initialize()
     db
-
   }
 
   def doesFileExist(filepath: String): Boolean =
@@ -43,19 +45,14 @@ class DbManagerImpl(
   private val dbPath: String = s"jdbc:sqlite:$vaultFile"
 
   private def getDbConnectionOpt: Option[Connection] =
-    Try {
-      DriverManager.getConnection(dbPath)
-    }.toOption
+    Try {DriverManager.getConnection(dbPath)}.toOption
 
   private def tryCloseConnection(connection: Connection): Unit =
-    Try {
-      connection.close()
-    }
+    Try {connection.close()}
 
   private def getDbConnection: Connection =
     getDbConnectionOpt match {
-      case Some(connection) =>
-        connection
+      case Some(connection) => connection
       case None =>
         throw new IllegalAccessException("Unable to open connection")
     }
@@ -106,9 +103,7 @@ class DbManagerImpl(
     tryCloseConnection(connection)
   }
 
-  private def getResultAsList(
-    table: SerializedMetadataTableUtil
-  )(
+  private def getResultAsList(table: SerializedMetadataTableUtil)(
     rs: ResultSet,
   ): List[table.rowType] = {
     val mutableList: ListBuffer[table.rowType] = ListBuffer.empty
@@ -119,12 +114,9 @@ class DbManagerImpl(
   }
 
 
-  private def executeSqlQuery(
-    table: SerializedMetadataTableUtil
-  )(
+  private def executeSqlQuery(table: SerializedMetadataTableUtil)(
     sql: String,
   ): List[table.rowType] = {
-    System.out.println(sql)
     getDbConnectionOpt.map {
       connection =>
         Try {
@@ -163,13 +155,9 @@ class DbManagerImpl(
 
     if (!isTablePresent(VaultTable.tableName))
       executeSqlCommand(VaultTable.createTableSql)
-
-
   }
 
-  def getEntryByIndexOpt(
-    table: SerializedMetadataTableUtil
-  )(
+  def getEntryByIndexOpt(table: SerializedMetadataTableUtil)(
     id: table.indexType
   ): Option[table.rowType] =
     executeSqlQuery(table)(table.selectByIndexSql(id)).headOption
@@ -178,9 +166,7 @@ class DbManagerImpl(
     table: SerializedMetadataTableUtil
   ): List[table.rowType] = executeSqlQuery(table)(table.selectAllSql)
 
-  def setEntryByIndex(
-    table: SerializedMetadataTableUtil
-  )(
+  def setEntryByIndex(table: SerializedMetadataTableUtil)(
     id: table.indexType,
     entry: String
   ): Unit = executeSqlCommand(table.insertSql(id, entry))

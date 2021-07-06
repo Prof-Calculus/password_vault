@@ -1,3 +1,7 @@
+/*
+ *  Created on: July 6, 2021
+ *      Author: Srinivasan PS
+ */
 package util.manager
 
 import util.vault.memoized_metadata.credential.Credential
@@ -25,9 +29,7 @@ class VaultManagerImpl(
         handlers.interface.getCredential(
           handlers.userHandle.encryptHandle,
           handlers.userHandle.decryptHandle,
-        )(
-          id = handlers.credentials.getNextCredentialId
-        )
+        )(id = handlers.credentials.getNextCredentialId)
       )
       .forceSyncDownToVault(handlers.metadataManager)
 

@@ -1,3 +1,7 @@
+/*
+ *  Created on: July 6, 2021
+ *      Author: Srinivasan PS
+ */
 package util.action
 
 import java.io.Console
@@ -9,9 +13,7 @@ import util.enums.UserInterfaceChoice.UserInterfaceChoice
 
 object IoInterface {
 
-  def getUserInterface: IoInterface = {
-    new IoInterface()
-  }
+  def getUserInterface: IoInterface = new IoInterface()
 
 }
 

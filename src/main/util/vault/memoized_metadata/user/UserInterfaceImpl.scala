@@ -1,3 +1,7 @@
+/*
+ *  Created on: July 6, 2021
+ *      Author: Srinivasan PS
+ */
 package util.vault.memoized_metadata.user
 
 import util.action.IoInterface
@@ -24,10 +28,8 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
     MainMenuChoice.values.foreach(
       choice => print(s"Enter ${choice.id} to $choice\n")
     )
-    val inp = interface.getString("Your input").toInt
-    MainMenuChoice.values.find(
-      _.id == inp
-    ).getOrElse(
+    val input = interface.getString("Your input").toInt
+    MainMenuChoice.values.find(_.id == input).getOrElse(
       throw new RuntimeException("Illegal input")
     )
   }

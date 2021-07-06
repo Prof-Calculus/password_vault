@@ -1,3 +1,7 @@
+/*
+ *  Created on: July 6, 2021
+ *      Author: Srinivasan PS
+ */
 package util.crypto
 
 import java.nio.ByteBuffer
@@ -31,8 +35,11 @@ object CryptoHelper {
   }
 
   private def transformPassword(key: String): SecretKey = {
-    new SecretKeySpec(MessageDigest.getInstance("MD5").digest((Salt + key)
-      .getBytes(Utf8)), "AES")
+    new SecretKeySpec(
+      MessageDigest
+        .getInstance("MD5")
+        .digest((Salt + key).getBytes(Utf8)),
+      "AES")
   }
 
   def encrypt(
@@ -45,11 +52,11 @@ object CryptoHelper {
 
     val cipher: Cipher = Cipher.getInstance(Algorithm)
     val iv = new IvParameterSpec(
-      if (useRandomIv) {
+      if (useRandomIv)
         randomByteArray(IvLengthInBytes)
-      } else {
+      else
         Array.fill[Byte](IvLengthInBytes)(0)
-      })
+      )
 
     cipher.init(Cipher.ENCRYPT_MODE, vaultKey, iv)
     val encrypted = cipher.doFinal(input.getBytes)
