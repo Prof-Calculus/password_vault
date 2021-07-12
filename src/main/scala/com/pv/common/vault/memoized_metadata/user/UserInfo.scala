@@ -12,18 +12,16 @@ import com.pv.tools.crypto.CryptoHelper.EncryptedString
 import com.pv.common.vault.memoized_metadata.MemoizedMetadata
 import com.pv.common.vault.metadata_manager.MetadataManager
 import com.pv.common.vault.metadata_manager.UserTable
+import com.pv.tools.crypto.MyCryptoHandle
 
 
 object UserInfo extends Serializable {
   implicit val formats: Formats = DefaultFormats
 
-  def get(
-    username: String,
-    dropboxTokenOpt: Option[EncryptedString] = None
-  ): UserInfo =
+  def get(username: String, dropboxToken: EncryptedString): UserInfo =
     UserInfo(
       username = username,
-      dropboxTokenOpt = dropboxTokenOpt
+      dropboxToken = dropboxToken
     )
 
   def fromString(str: String): UserInfo = read[UserInfo](str)
@@ -31,17 +29,20 @@ object UserInfo extends Serializable {
 
 case class UserInfo(
   username: String,
-  dropboxTokenOpt: Option[EncryptedString] = None,
+  dropboxToken: EncryptedString,
 ) extends MemoizedMetadata {
 
   implicit val formats: Formats = UserInfo.formats
 
   override def toString: String = writePretty[UserInfo](this)
 
-  override def forceSyncDownToVault(metadataManager: MetadataManager): Unit =
+  override def forceSyncDownToVault(
+    metadataManager: MetadataManager,
+    myCrypto: MyCryptoHandle
+  ): Unit =
     metadataManager.setEntryByIndex(UserTable)(
       username,
-      dropboxTokenOpt.getOrElse("")
+      dropboxToken
     )
 
 }

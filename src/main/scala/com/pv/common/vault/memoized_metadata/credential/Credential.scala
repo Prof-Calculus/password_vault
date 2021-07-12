@@ -1,7 +1,4 @@
 /*
-
- */
-/*
  *  Created on: July 6, 2021
  *      Author: Srinivasan PS
  */
@@ -13,18 +10,20 @@ import org.json4s.native.Serialization.read
 import org.json4s.native.Serialization.writePretty
 import scala.util.Try
 import com.pv.tools.crypto.CryptoHelper.EncryptedString
-import com.pv.tools.crypto.CryptoHelper.decryptHandleType
 import com.pv.util.Constants.DELETED_STRING
 import com.pv.common.vault.memoized_metadata.MemoizedMetadata
 import com.pv.common.vault.metadata_manager.MetadataManager
 import com.pv.common.vault.metadata_manager.VaultTable
+import com.pv.tools.crypto.MyCryptoHandle
 
 object Credential extends Serializable {
 
   implicit val formats: Formats = CredentialConfigs.formats
 
-  def loadFromVaultEntry(id: Int, entry: String): Credential =
-    Credential.fromString(entry).copy(id = id)
+  def loadFromVaultEntry(myCrypto: MyCryptoHandle)(
+    id: Int,
+    entry: String
+  ): Credential = Credential.fromString(myCrypto.decrypt(entry)).copy(id = id)
 
   def getCredential(
     id: Int,
@@ -40,14 +39,13 @@ object Credential extends Serializable {
       pastCredentials = CredentialConfigs.initializeEmpty()
     )
 
-  def fromString(str: String): Credential =
-    read[Credential](str)
+  def fromString(str: String): Credential = read[Credential](str)
 
 }
 
 case class Credential(
   id: Int,
-  description: EncryptedString,
+  description: String,
   userEntry: EncryptedString,
   passwordEntry: EncryptedString,
   pastCredentials: CredentialConfigs,
@@ -56,18 +54,23 @@ case class Credential(
 
   implicit val formats: Formats = Credential.formats
 
-  def isSame(decryptor: decryptHandleType)(obj: Credential): Boolean = {
+  def isSame(myCrypto: MyCryptoHandle)(obj: Credential): Boolean = {
     Try{
       description == obj.description &&
-        decryptor(userEntry).equals(decryptor(obj.userEntry)) &&
-        decryptor(passwordEntry).equals(decryptor(obj.passwordEntry))
+        myCrypto.decrypt(userEntry).equals(myCrypto.decrypt(obj.userEntry)) &&
+        myCrypto.decrypt(passwordEntry).equals(
+          myCrypto.decrypt(obj.passwordEntry))
     }.getOrElse(false)
   }
 
   override def toString: String = writePretty[Credential](this)
 
-  override def forceSyncDownToVault(metadataManager: MetadataManager): Unit = {
-    metadataManager.setEntryByIndex(VaultTable)(id, this.toString)
+  override def forceSyncDownToVault(
+    metadataManager: MetadataManager,
+    myCrypto: MyCryptoHandle
+  ): Unit = {
+    metadataManager.setEntryByIndex(VaultTable)(
+      id, myCrypto.encrypt(this.toString))
   }
 
   def getAsExpiredCredential: Credential = {
@@ -83,32 +86,32 @@ case class Credential(
       passwordTimestamp = new Date())
   }
 
-  def getUserEntry(decryptor: decryptHandleType): String =
-    decryptor(userEntry)
+  def getUserEntry(myCrypto: MyCryptoHandle): String =
+    myCrypto.decrypt(userEntry)
 
-  def getPasswordEntry(decryptor: decryptHandleType): String =
-    decryptor(passwordEntry)
+  def getPasswordEntry(myCrypto: MyCryptoHandle): String =
+    myCrypto.decrypt(passwordEntry)
 
   def getDescription: String = description
 
-  def addCredentialToHistory(decryptor: decryptHandleType)(
+  def addCredentialToHistory(myCrypto: MyCryptoHandle)(
     cred: Credential
   ): Credential = {
     // First just combine the past credentials on both credentials. Then
     // insert the input-credential as an expired cred
-    pastCredentials.merge(decryptor)(cred.pastCredentials)
-    pastCredentials.addOrReplace(decryptor)(cred.getAsExpiredCredential)
+    pastCredentials.merge(myCrypto)(cred.pastCredentials)
+    pastCredentials.addOrReplace(myCrypto)(cred.getAsExpiredCredential)
     this
   }
 
-  def getMergedIntoLatest(decryptor: decryptHandleType)(
+  def getMergedIntoLatest(myCrypto: MyCryptoHandle)(
     cred: Credential
   ): Credential = {
     if(passwordTimestamp.equals(cred.passwordTimestamp) ||
       passwordTimestamp.after(cred.passwordTimestamp)) {
-      addCredentialToHistory(decryptor)(cred)
+      addCredentialToHistory(myCrypto)(cred)
     } else {
-      cred.getMergedIntoLatest(decryptor)(cred = this)
+      cred.getMergedIntoLatest(myCrypto)(cred = this)
     }
   }
 

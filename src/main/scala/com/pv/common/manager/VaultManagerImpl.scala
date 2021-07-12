@@ -18,31 +18,32 @@ class VaultManagerImpl(
 ) extends VaultManager {
 
   private def getCredentialChoiceOpt: Option[Credential] =
-    handlers
-      .interface
-      .chooseCredential(handlers.credentials)
+    handlers.interface.chooseCredential(handlers.credentials)
 
   override def addCredential(): Unit =
     handlers
       .credentials
       .addOrReplace(
         handlers.interface.getCredential(
-          handlers.userHandle.encryptHandle,
-          handlers.userHandle.decryptHandle,
+          handlers.userHandle.myCryptoHandle,
         )(id = handlers.credentials.getNextCredentialId)
       )
-      .forceSyncDownToVault(handlers.metadataManager)
+      .forceSyncDownToVault(
+        handlers.metadataManager,
+        handlers.userHandle.myCryptoHandle
+      )
 
   override def viewCredential(): Unit =
     getCredentialChoiceOpt
-      .foreach(handlers.interface.putCredential(
-        handlers.userHandle.decryptHandle))
+      .foreach(
+        handlers.interface.putCredential(handlers.userHandle.myCryptoHandle))
 
   override def listAllCredentials(): Unit =
     handlers
       .interface
-      .viewAllCredentials(handlers.userHandle.decryptHandle)(
-        handlers.credentials.credentialList())
+      .viewAllCredentials(handlers.userHandle.myCryptoHandle)(
+        handlers.credentials.credentialList()
+      )
 
   override def editCredential(): Unit =
     getCredentialChoiceOpt
@@ -52,11 +53,11 @@ class VaultManagerImpl(
             cred,
             handlers
               .interface
-              .getCredential(
-                handlers.userHandle.encryptHandle,
-                handlers.userHandle.decryptHandle,
-              )(id = cred.id)
-          ).forceSyncDownToVault(handlers.metadataManager)
+              .getCredential(handlers.userHandle.myCryptoHandle)(id = cred.id)
+          ).forceSyncDownToVault(
+            handlers.metadataManager,
+            handlers.userHandle.myCryptoHandle
+          )
       )
 
   override def deleteCredential(): Unit = ???

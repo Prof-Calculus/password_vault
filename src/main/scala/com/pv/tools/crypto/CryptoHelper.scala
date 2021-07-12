@@ -4,6 +4,7 @@
  */
 package com.pv.tools.crypto
 
+import com.pv.tools.crypto.CryptoHelper.EncryptedString
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -14,12 +15,7 @@ import javax.crypto.spec.SecretKeySpec
 import org.apache.commons.codec.binary.Base64
 
 object CryptoHelper {
-
   type EncryptedString = String
-
-  type decryptHandleType = (EncryptedString => String)
-  type encryptHandleType = (EncryptedString => String)
-
   type TransformedString = String
 
   private final val Algorithm = "AES/CBC/PKCS5Padding"
@@ -70,10 +66,10 @@ object CryptoHelper {
 
   def decrypt(
     input: EncryptedString,
-    vaultPassword: TransformedString
+    password: TransformedString
   ): String = {
 
-    val vaultKey = transformPassword(vaultPassword)
+    val vaultKey = transformPassword(password)
 
     val cipher: Cipher = Cipher.getInstance(Algorithm)
     val decodedBytes = ByteBuffer.wrap(Base64.decodeBase64(input.getBytes))
@@ -94,4 +90,11 @@ object CryptoHelper {
       useRandomIv = false
     )
   }
+}
+
+case class MyCryptoHandle(private val password: String) {
+  def encrypt(str: String): EncryptedString =
+    CryptoHelper.encrypt(str, password)
+  def decrypt(str: EncryptedString): String =
+    CryptoHelper.decrypt(str, password)
 }

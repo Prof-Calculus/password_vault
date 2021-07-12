@@ -12,9 +12,9 @@ import org.json4s.native.Serialization.read
 import org.json4s.native.Serialization.writePretty
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import com.pv.tools.crypto.CryptoHelper.decryptHandleType
 import com.pv.common.vault.metadata_manager.MetadataManager
 import com.pv.common.vault.metadata_manager.VaultTable
+import com.pv.tools.crypto.MyCryptoHandle
 
 object CredentialConfigs extends Serializable {
 
@@ -31,10 +31,13 @@ object CredentialConfigs extends Serializable {
     new CredentialConfigs(read[mutable.ListBuffer[Credential]](str))
   }
 
-  def loadFromVault(metadataManager: MetadataManager): CredentialConfigs = {
+  def loadFromVault(
+    metadataManager: MetadataManager,
+    myCrypto: MyCryptoHandle,
+  ): CredentialConfigs = {
     CredentialConfigs(
       metadataManager.getAllEntries(VaultTable).map {
-        case (id, entry) => Credential.loadFromVaultEntry(id, entry)
+        case (id, entry) => Credential.loadFromVaultEntry(myCrypto)(id, entry)
       }.to[ListBuffer]
     )
   }
@@ -57,9 +60,9 @@ case class CredentialConfigs(
 
   override def iterator: Iterator[Credential] = credentials.iterator
 
-  def merge(decryptor: decryptHandleType)(
+  def merge(myCrypto: MyCryptoHandle)(
     newCredentials: CredentialConfigs
-  ): Unit = newCredentials.foreach(addOrReplace(decryptor))
+  ): Unit = newCredentials.foreach(addOrReplace(myCrypto))
 
   def length: Int = credentials.length
 
@@ -67,36 +70,36 @@ case class CredentialConfigs(
 
   def getNextCredentialId: Int = length
 
-  def remove(decryptor: decryptHandleType)(
+  def remove(myCrypto: MyCryptoHandle)(
     cred: Credential,
   ): Credential = {
-    val toAdd = cred.getMergedIntoLatest(decryptor)(cred)
+    val toAdd = cred.getMergedIntoLatest(myCrypto)(cred)
     toAdd
   }
 
-  def forceReplace(decryptor: decryptHandleType)(
+  def forceReplace(myCrypto: MyCryptoHandle)(
     oldCred: Credential,
     newCred: Credential
   ): Credential = {
-    newCred.addCredentialToHistory(decryptor)(oldCred)
+    newCred.addCredentialToHistory(myCrypto)(oldCred)
     credentials.update(credentials.indexWhere(_.id == oldCred.id), newCred)
     newCred
   }
 
-  def mergeAndUpdateToLatest(decryptor: decryptHandleType)(
+  def mergeAndUpdateToLatest(myCrypto: MyCryptoHandle)(
     oldCred: Credential,
     newCred: Credential
   ): Credential = {
-    val merged = newCred.getMergedIntoLatest(decryptor)(oldCred)
+    val merged = newCred.getMergedIntoLatest(myCrypto)(oldCred)
     credentials.update(credentials.indexWhere(_.id == oldCred.id), merged)
     merged
   }
 
-  def addOrReplace(decryptor: decryptHandleType)(
+  def addOrReplace(myCrypto: MyCryptoHandle)(
     credNew: Credential
   ): Credential = {
-    credentials.find(_.isSame(decryptor)(credNew)).foreach(
-      cred => return mergeAndUpdateToLatest(decryptor)(cred, credNew)
+    credentials.find(_.isSame(myCrypto)(credNew)).foreach(
+      cred => return mergeAndUpdateToLatest(myCrypto)(cred, credNew)
     )
     val toAdd = {
       // Check whether we are adding it as a past-credential

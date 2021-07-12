@@ -4,11 +4,11 @@
  */
 package com.pv.common.manager
 
+import com.pv.common.manager.userinterface.UserInterface
+import com.pv.common.manager.userinterface.UserInterfaceImpl
+import com.pv.common.vault.CredentialManager
+import com.pv.common.vault.UserHandle
 import com.pv.interaction.IoInterface
-import com.pv.common.vault.memoized_metadata.credential.CredentialManager
-import com.pv.common.vault.memoized_metadata.user.UserHandler
-import com.pv.common.vault.memoized_metadata.user.UserInterface
-import com.pv.common.vault.memoized_metadata.user.UserInterfaceImpl
 import com.pv.common.vault.metadata_manager.MetadataManager
 
 object Handlers {
@@ -18,13 +18,12 @@ object Handlers {
     // Add logic to decide whether to use GUI or Default
     val interfaceUtil: UserInterface =
       UserInterfaceImpl.get(IoInterface.getUserInterface)
-    val userHandle: UserHandler =
+    val userHandle: UserHandle =
       interfaceUtil.getUserSpec(MetadataManager.getOptimalMetadataManager)
     val metadataManager: MetadataManager =
       userHandle.getMetadataManager
     val credentialConfigs: CredentialManager =
-      CredentialManager.get(metadataManager)(
-        decryptor = userHandle.decryptHandle)
+      CredentialManager.get(metadataManager, userHandle.myCryptoHandle)()
 
     Handlers(
       userHandle,
@@ -37,7 +36,7 @@ object Handlers {
 }
 
 case class Handlers(
-  userHandle: UserHandler,
+  userHandle: UserHandle,
   interface: UserInterface,
   metadataManager: MetadataManager,
   credentials: CredentialManager

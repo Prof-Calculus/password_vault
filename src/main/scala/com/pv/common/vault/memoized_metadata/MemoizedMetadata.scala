@@ -5,9 +5,13 @@
 package com.pv.common.vault.memoized_metadata
 
 import com.pv.common.vault.metadata_manager.MetadataManager
+import com.pv.tools.crypto.MyCryptoHandle
 
 trait MemoizedMetadata extends Serializable {
 
-  def forceSyncDownToVault(metadataManager: MetadataManager): Unit
+  def forceSyncDownToVault(
+    metadataManager: MetadataManager,
+    myCrypto: MyCryptoHandle,
+  ): Unit
 
 }

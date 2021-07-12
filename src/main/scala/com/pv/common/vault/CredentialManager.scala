@@ -2,40 +2,39 @@
  *  Created on: July 6, 2021
  *      Author: Srinivasan PS
  */
-package com.pv.common.vault.memoized_metadata.credential
+package com.pv.common.vault
 
-import com.pv.tools.crypto.CryptoHelper.decryptHandleType
+import com.pv.common.vault.memoized_metadata.credential.Credential
+import com.pv.common.vault.memoized_metadata.credential.CredentialConfigs
 import com.pv.common.vault.metadata_manager.MetadataManager
+import com.pv.tools.crypto.MyCryptoHandle
 
 object CredentialManager{
 
-  def get(metadataManager: MetadataManager)(
-    credentials: CredentialConfigs = CredentialConfigs.loadFromVault(metadataManager),
-    decryptor: decryptHandleType,
+  def get(metadataManager: MetadataManager, myCrypto: MyCryptoHandle)(
+    credentials: CredentialConfigs =
+      CredentialConfigs.loadFromVault(metadataManager, myCrypto),
   ): CredentialManager =
-    new CredentialManager(
-      credentials,
-      decryptor,
-    )
+    new CredentialManager(credentials, myCrypto)
 
 }
 
 class CredentialManager(
   credentials: CredentialConfigs,
-  decryptor: decryptHandleType,
+  myCrypto: MyCryptoHandle,
 ) {
   def addOrReplace(credNew: Credential): Credential =
-    credentials.addOrReplace(decryptor)(credNew)
+    credentials.addOrReplace(myCrypto)(credNew)
 
   def merge(cred1: Credential, cred2: Credential): Credential =
-    credentials.forceReplace(decryptor)(cred1, cred2)
+    credentials.forceReplace(myCrypto)(cred1, cred2)
 
   def getNextCredentialId: Int = credentials.getNextCredentialId
 
   def credentialList(): CredentialConfigs = credentials
 
   def remove(cred: Credential): Unit =
-    credentials.remove(decryptor)(cred)
+    credentials.remove(myCrypto)(cred)
 
   def find(id: Int): Option[Credential] = credentials.find(_.id == id)
 

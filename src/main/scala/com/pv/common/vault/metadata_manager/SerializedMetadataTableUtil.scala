@@ -36,7 +36,7 @@ trait SerializedMetadataTableUtil {
   def createTableSql: String =
     s"CREATE TABLE ${tableName} " +
       s"(${_index_column} ${_index_column_type} not NULL, " +
-      s"${_entry_column} VARCHAR(255) not NULL, " +
+      s"${_entry_column} TEXT not NULL, " +
       s"PRIMARY KEY ( ${_index_column} ))"
 
 }

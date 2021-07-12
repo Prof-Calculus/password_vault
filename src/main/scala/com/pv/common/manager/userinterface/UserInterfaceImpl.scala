@@ -2,18 +2,19 @@
  *  Created on: July 6, 2021
  *      Author: Srinivasan PS
  */
-package com.pv.common.vault.memoized_metadata.user
+package com.pv.common.manager.userinterface
 
-import com.pv.interaction.IoInterface
-import com.pv.tools.crypto.CryptoHelper
-import com.pv.tools.crypto.CryptoHelper.decryptHandleType
-import com.pv.tools.crypto.CryptoHelper.encryptHandleType
-import com.pv.util.MainMenuChoice.MainMenuChoice
+import com.pv.common.vault.CredentialManager
+import com.pv.common.vault.UserHandle
 import com.pv.common.vault.memoized_metadata.credential.Credential
 import com.pv.common.vault.memoized_metadata.credential.CredentialConfigs
-import com.pv.common.vault.memoized_metadata.credential.CredentialManager
 import com.pv.common.vault.metadata_manager.MetadataManager
+import com.pv.interaction.IoInterface
+import com.pv.tools.crypto.CryptoHelper
+import com.pv.tools.crypto.CryptoHelper.TransformedString
+import com.pv.tools.crypto.MyCryptoHandle
 import com.pv.util.MainMenuChoice
+import com.pv.util.MainMenuChoice.MainMenuChoice
 
 object UserInterfaceImpl {
 
@@ -34,39 +35,40 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
     )
   }
 
-  def putCredential(
-    decryptor: decryptHandleType
-  )(
+  def putCredential(myCrypto: MyCryptoHandle)(
     credential: Credential
   ): Unit = {
     interface.putString(s"==== Credential start==== ${credential.id}")
     interface.putString(credential.getDescription, "Description")
-    interface.putPasswordString(credential.getUserEntry(decryptor), "Username")
-    interface.putPasswordString(credential.getPasswordEntry(decryptor), "Password")
+    interface.putPasswordString(credential.getUserEntry(myCrypto), "Username")
+    interface.putPasswordString(credential.getPasswordEntry(myCrypto), "Password")
     interface.putString(s"Old Credentials for ${credential.id}")
-    credential.pastCredentials.foreach(putCredential(decryptor))
+    credential.pastCredentials.foreach(putCredential(myCrypto))
     interface.putString(s"==== Credential end ======\n")
   }
 
   def getUserSpec(
     metadataManagerHandle: String => MetadataManager,
-  ): UserHandler = {
+  ): UserHandle = {
     val username: String = interface.getString("Username")
-    val vaultPassword: String = interface.getPasswordInput("Password")
+    val vaultPassword: TransformedString =
+      CryptoHelper.definitiveTransformation(
+        interface.getPasswordInput("Vault Password"))
+    val mm = metadataManagerHandle(username)
 
-    CryptoHelper.definitiveTransformation(vaultPassword)
-
-    UserHandler.getAndPersistUserSpec(
+    UserHandle.getAndPersistUserSpec(
       username = username,
       vaultPassword = vaultPassword,
-      metadataManager = metadataManagerHandle(username)
+      metadataManager = mm,
+      dropboxToken = UserHandle.verifyPasswordAndGetDropboxToken(
+        metadataManager = mm,
+        username = username,
+        vaultPassword = vaultPassword
+      )
     )
   }
 
-  def getCredential(
-    encrypt: encryptHandleType,
-    decrypt: decryptHandleType
-  )(
+  def getCredential(myCrypto: MyCryptoHandle)(
     id: Int,
     descriptionOpt: Option[String] = None,
   ): Credential = {
@@ -78,11 +80,11 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
           interface.getString("Enter description")
         ),
       userEntry =
-        encrypt(
+        myCrypto.encrypt(
           interface.getPasswordInput("Enter credential username")
         ),
       passwordEntry =
-        encrypt(
+        myCrypto.encrypt(
           interface.getPasswordInput("Enter credential password")
         )
     )
@@ -107,9 +109,7 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
 
   }
 
-  def viewAllCredentials(
-    decryptor: decryptHandleType
-  )(
+  def viewAllCredentials(myCrypto: MyCryptoHandle)(
     credentials: CredentialConfigs
   ): Unit = {
     interface.putString("Viewing all credentials")
@@ -118,8 +118,7 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
       interface.putString("Empty")
       return
     }
-    credentials.foreach(putCredential(decryptor))
-
+    credentials.foreach(putCredential(myCrypto))
   }
 
 }

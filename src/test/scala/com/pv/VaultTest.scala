@@ -65,7 +65,7 @@ class VaultTest extends Matchers {
     val newSpec = UserInfo.fromString(spec.toString)
 
     newSpec.username shouldBe spec.username
-    newSpec.dropboxTokenOpt shouldBe spec.dropboxTokenOpt
+    newSpec.dropboxToken shouldBe spec.dropboxToken
 
   }
 
@@ -97,13 +97,13 @@ class VaultTest extends Matchers {
 
       original.foreach {
         c => newer.pastCredentials.find(
-          _.isSame(universe.handlers.userHandle.decryptHandle)(c)
+          _.isSame(universe.handlers.userHandle.myCryptoHandle)(c)
         ).get.description shouldBe c.description
       }
 
-      newer.getUserEntry(universe.handlers.userHandle.decryptHandle) shouldBe
+      newer.getUserEntry(universe.handlers.userHandle.myCryptoHandle) shouldBe
         use
-      newer.getPasswordEntry(universe.handlers.userHandle.decryptHandle) shouldBe
+      newer.getPasswordEntry(universe.handlers.userHandle.myCryptoHandle) shouldBe
         pass
       newer.description shouldBe desc
 

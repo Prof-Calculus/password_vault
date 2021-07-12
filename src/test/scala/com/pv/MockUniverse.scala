@@ -6,20 +6,19 @@ package com.pv
 
 import com.pv.interaction.IoInterface
 import com.pv.tools.crypto.CryptoHelper
-import com.pv.tools.crypto.CryptoHelper.decryptHandleType
-import com.pv.tools.crypto.CryptoHelper.encryptHandleType
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import com.pv.common.manager.Handlers
 import com.pv.common.manager.VaultManager
+import com.pv.common.manager.userinterface.UserInterfaceImpl
+import com.pv.common.vault.CredentialManager
+import com.pv.common.vault.UserHandle
 import com.pv.common.vault.memoized_metadata.credential.Credential
 import com.pv.common.vault.memoized_metadata.credential.CredentialConfigs
-import com.pv.common.vault.memoized_metadata.credential.CredentialManager
-import com.pv.common.vault.memoized_metadata.user.UserHandler
-import com.pv.common.vault.memoized_metadata.user.UserInterfaceImpl
 import com.pv.common.vault.metadata_manager.MetadataManager
 import com.pv.common.vault.metadata_manager.SerializedMetadataTableUtil
 import com.pv.common.vault.metadata_manager.UserTable
 import com.pv.common.vault.metadata_manager.VaultTable
+import com.pv.tools.crypto.MyCryptoHandle
 import scala.collection.mutable
 import scala.util.Random
 
@@ -162,14 +161,14 @@ class MockUserInterface(
 
 
   override def putCredential(
-    decryptor: decryptHandleType
+    myCrypto: MyCryptoHandle
   )(
     credential: Credential
   ): Unit = {}
 
   override def getUserSpec(
     metadataManagerHandle: String => MetadataManager,
-  ): UserHandler = {
+  ): UserHandle = {
     val mockInterface = MockInterface.get()
     mockInterface.nextStringToInput.enqueue(vaultUsername)
     mockInterface.nextStringToInput.enqueue(vaultPassword)
@@ -178,8 +177,7 @@ class MockUserInterface(
   }
 
   override def getCredential(
-    encrypt: encryptHandleType,
-    decrypt: decryptHandleType,
+    myCrypto: MyCryptoHandle,
   )(
     id: Int,
     descriptionOpt: Option[String] = None,
@@ -193,10 +191,10 @@ class MockUserInterface(
     interface.nextStringToInput.enqueue(username)
     interface.nextStringToInput.enqueue(password)
 
-    val cred = super.getCredential(encrypt, decrypt)(id, descriptionOpt)
+    val cred = super.getCredential(myCrypto)(id, descriptionOpt)
 
-    cred.getUserEntry(decrypt) shouldBe username
-    cred.getPasswordEntry(decrypt) shouldBe password
+    cred.getUserEntry(myCrypto) shouldBe username
+    cred.getPasswordEntry(myCrypto) shouldBe password
     cred.description shouldBe description
 
     cred
@@ -216,7 +214,7 @@ class MockUserInterface(
   }
 
   override def viewAllCredentials(
-    decryptor: decryptHandleType
+    myCrypto: MyCryptoHandle
   )(
     credentials: CredentialConfigs
   ): Unit = {}
@@ -229,18 +227,19 @@ object MockHandlers {
     vaultUsername: String,
     vaultPassword: String
   ): Handlers = {
-    val interfaceUtil: MockUserInterface = MockUserInterface.get(MockInterface.get())
+    val interfaceUtil: MockUserInterface =
+      MockUserInterface.get(MockInterface.get())
 
     interfaceUtil.vaultUsername = vaultUsername
     interfaceUtil.vaultPassword = vaultPassword
-    val userHandle: UserHandler =
+
+    val userHandle: UserHandle =
       interfaceUtil.getUserSpec(MockMetadataManager.get)
 
     val metadataManager: MetadataManager = userHandle.getMetadataManager
 
     val credentialConfigs: CredentialManager =
-      CredentialManager.get(metadataManager)(
-        decryptor = userHandle.decryptHandle)
+      CredentialManager.get(metadataManager, userHandle.myCryptoHandle)()
 
     Handlers(
       userHandle,

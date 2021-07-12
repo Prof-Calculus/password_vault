@@ -1,7 +1,6 @@
-# Password vault (early announcement)
+# Password vault
 
-
-## Coming soon
+Coming soon
 
 
 #### A single password to remember it all.
@@ -16,7 +15,7 @@
 ---
 # The software
 
-**Version:** 1.0.0
+**Version:** 1.0_ER (Early Release)
 
 **Link:** https://www.dropbox.com/s/zb51d76w60ljwnc/password_vault-1.0.0.jar?dl=0
 
