@@ -17,7 +17,7 @@ Coming soon
 
 **Version:** 1.0_ER (Early Release)
 
-**Link:** https://www.dropbox.com/s/zb51d76w60ljwnc/password_vault-1.0.0.jar?dl=0
+**Downloads Folder:** https://www.dropbox.com/sh/y54c1b6csebxh37/AAAp-TpV7H3hbnBnjHmBW_t3a?dl=0
 
 **Md5sum:** 0305ba513848ad57c12703dd149c9b65
 
