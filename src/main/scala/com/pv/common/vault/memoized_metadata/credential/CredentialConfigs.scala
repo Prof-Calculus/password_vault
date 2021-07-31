@@ -4,6 +4,10 @@
  */
 package com.pv.common.vault.memoized_metadata.credential
 
+import com.pv.common.vault.metadata_manager.MetadataManager
+import com.pv.common.vault.metadata_manager.VaultTable
+import com.pv.tools.crypto.MyCryptoHandle
+import java.util.Date
 import org.json4s.CustomSerializer
 import org.json4s.DefaultFormats
 import org.json4s.Formats
@@ -12,9 +16,6 @@ import org.json4s.native.Serialization.read
 import org.json4s.native.Serialization.writePretty
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import com.pv.common.vault.metadata_manager.MetadataManager
-import com.pv.common.vault.metadata_manager.VaultTable
-import com.pv.tools.crypto.MyCryptoHandle
 
 object CredentialConfigs extends Serializable {
 
@@ -49,8 +50,11 @@ object CredentialConfigs extends Serializable {
 
 
 case class CredentialConfigs(
-  credentials: ListBuffer[Credential] = ListBuffer.empty[Credential]
+  credentials: ListBuffer[Credential] = ListBuffer.empty[Credential],
+  var timestamp: Long = new Date().getTime
 ) extends mutable.Iterable[Credential] with Serializable {
+
+  private def updateTimestamp(): Unit = timestamp = new Date().getTime
 
   implicit val formats: Formats = CredentialConfigs.formats
 
@@ -62,7 +66,10 @@ case class CredentialConfigs(
 
   def merge(myCrypto: MyCryptoHandle)(
     newCredentials: CredentialConfigs
-  ): Unit = newCredentials.foreach(addOrReplace(myCrypto))
+  ): Unit = {
+    newCredentials.foreach(addOrReplace(myCrypto))
+    updateTimestamp()
+  }
 
   def length: Int = credentials.length
 
@@ -74,6 +81,7 @@ case class CredentialConfigs(
     cred: Credential,
   ): Credential = {
     val toAdd = cred.getMergedIntoLatest(myCrypto)(cred)
+    updateTimestamp()
     toAdd
   }
 
@@ -83,6 +91,7 @@ case class CredentialConfigs(
   ): Credential = {
     newCred.addCredentialToHistory(myCrypto)(oldCred)
     credentials.update(credentials.indexWhere(_.id == oldCred.id), newCred)
+    updateTimestamp()
     newCred
   }
 
@@ -110,6 +119,7 @@ case class CredentialConfigs(
       }
     }
     credentials.append(toAdd)
+    updateTimestamp()
     toAdd
   }
 

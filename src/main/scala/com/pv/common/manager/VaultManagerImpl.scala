@@ -35,8 +35,8 @@ class VaultManagerImpl(
 
   override def viewCredential(): Unit =
     getCredentialChoiceOpt
-      .foreach(
-        handlers.interface.putCredential(handlers.userHandle.myCryptoHandle))
+      .foreach(c =>
+        handlers.interface.putCredential(handlers.userHandle.myCryptoHandle)(c))
 
   override def listAllCredentials(): Unit =
     handlers

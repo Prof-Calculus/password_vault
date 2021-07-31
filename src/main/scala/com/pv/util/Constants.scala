@@ -24,13 +24,10 @@ object UserInterfaceChoice extends Enumeration {
 }
 
 object Constants {
-  final val USER_SETTINGS_DB_ENTRY_ID: Int = 0
-
-  final val LINUX_WORKING_DIRECTORY_PATH: String = "/home/srinivasan/my_vault/"
-
-  final val MAC_WORKING_DIRECTORY_PATH: String = "/Users/srinivasan/my_vault"
-
   final val DB_USERNAME: String = "passwordVault"
 
   final val DELETED_STRING: String = "Im Nuked"
+
+  final def vaultFile(username: String): String =
+    s"~/myvault/passwords_$username"
 }

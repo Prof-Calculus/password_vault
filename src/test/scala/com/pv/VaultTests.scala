@@ -4,6 +4,8 @@
  */
 package com.pv
 
+import com.pv.common.vault.memoized_metadata.credential.Credential
+import com.pv.common.vault.memoized_metadata.user.UserInfo
 import com.pv.interaction.IoInterface
 import com.pv.tools.crypto.CryptoHelper
 import com.pv.tools.crypto.CryptoHelper.EncryptedString
@@ -12,48 +14,45 @@ import javax.crypto.BadPaddingException
 import org.junit.Ignore
 import org.junit.Test
 import org.scalatest.matchers.should._
-import com.pv.common.vault.memoized_metadata.credential.Credential
-import com.pv.common.vault.memoized_metadata.user.UserInfo
 import scala.collection.mutable.ListBuffer
 
-
-class VaultTest extends Matchers {
+class VaultTests extends Matchers {
 
   @Test
-  def testEncrypt(): Unit = {
+  def TestEncrypt(): Unit = {
     val universe =  MockUniverse.create()
 
     val message = "string"
 
     val encrypted: EncryptedString =
-      CryptoHelper.encrypt(message, universe.getVaultPassword)
+      CryptoHelper.encrypt(message, universe.userInfo.vaultPassword)
 
-    encrypted should not contain universe.getVaultPassword
+    encrypted should not contain universe.userInfo.vaultPassword
     encrypted should not contain message
   }
 
   @Test
-  def testDecrypt(): Unit = {
+  def TestDecrypt(): Unit = {
     val universe =  MockUniverse.create()
 
     val message = "string"
 
     val encrypted: EncryptedString =
-      CryptoHelper.encrypt(message, universe.getVaultPassword)
+      CryptoHelper.encrypt(message, universe.userInfo.vaultPassword)
 
-    CryptoHelper.decrypt(encrypted, universe.getVaultPassword) shouldBe message
+    CryptoHelper.decrypt(encrypted, universe.userInfo.vaultPassword) shouldBe message
 
     an [BadPaddingException] should be thrownBy {
       CryptoHelper.decrypt(encrypted, "ARandomPassword")
     }
 
     an [BufferUnderflowException] should be thrownBy {
-      CryptoHelper.decrypt(message, universe.getVaultPassword)
+      CryptoHelper.decrypt(message, universe.userInfo.vaultPassword)
     }
   }
 
   @Test
-  def testUserSpecSerializer(): Unit = {
+  def TestUserSpecSerializer(): Unit = {
     val universe = MockUniverse.create()
 
     val spec = universe.handlers.userHandle.getUserInfo
@@ -70,7 +69,7 @@ class VaultTest extends Matchers {
   }
 
   @Test
-  def testEditCredentials(): Unit = {
+  def TestEditCredentials(): Unit = {
     val universe = MockUniverse.create()
 
     universe.mockInterface.setNextCredentialToGet()
@@ -112,10 +111,31 @@ class VaultTest extends Matchers {
 
   }
 
+  @Test
+  def TestWrongDbPassword(): Unit = {
+    val universe = MockUniverse.create()
+
+    universe.mockInterface.setNextCredentialToGet()
+    universe.vaultManager.addCredential()
+
+    an [IllegalAccessException] should be thrownBy {
+      val u2 = MockUniverse.create(universe.userInfo.copy(dbPassword = "wrong"))
+      u2.mockInterface.setNextCredentialToGet()
+      u2.vaultManager.addCredential()
+
+    }
+
+    // Trying the correct password again should work
+    noException shouldBe thrownBy(
+      MockUniverse.create(universe.userInfo)
+    )
+
+  }
+
 
   @Ignore
   @Test
-  def testPasswordInput(): Unit = {
+  def TestPasswordInput(): Unit = {
     val interface = new IoInterface()
 
     val pass = interface.getPasswordInput(s"Enter the password")

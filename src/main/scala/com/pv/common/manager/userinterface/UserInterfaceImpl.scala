@@ -5,14 +5,14 @@
 package com.pv.common.manager.userinterface
 
 import com.pv.common.vault.CredentialManager
-import com.pv.common.vault.UserHandle
 import com.pv.common.vault.memoized_metadata.credential.Credential
 import com.pv.common.vault.memoized_metadata.credential.CredentialConfigs
-import com.pv.common.vault.metadata_manager.MetadataManager
+import com.pv.common.vault.memoized_metadata.user.UserInfoInput
 import com.pv.interaction.IoInterface
 import com.pv.tools.crypto.CryptoHelper
 import com.pv.tools.crypto.CryptoHelper.TransformedString
 import com.pv.tools.crypto.MyCryptoHandle
+import com.pv.util.Constants
 import com.pv.util.MainMenuChoice
 import com.pv.util.MainMenuChoice.MainMenuChoice
 
@@ -25,7 +25,7 @@ object UserInterfaceImpl {
 
 class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
 
-  def printAndGetMainMenuInput(): MainMenuChoice = {
+  override def printAndGetMainMenuInput(): MainMenuChoice = {
     MainMenuChoice.values.foreach(
       choice => print(s"Enter ${choice.id} to $choice\n")
     )
@@ -35,40 +35,54 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
     )
   }
 
-  def putCredential(myCrypto: MyCryptoHandle)(
-    credential: Credential
+  override def putCredential(myCrypto: MyCryptoHandle)(
+    credential: Credential,
+    indent: String = ""
   ): Unit = {
-    interface.putString(s"==== Credential start==== ${credential.id}")
-    interface.putString(credential.getDescription, "Description")
-    interface.putPasswordString(credential.getUserEntry(myCrypto), "Username")
-    interface.putPasswordString(credential.getPasswordEntry(myCrypto), "Password")
+    interface.putString(s"$indent==== Credential start ==== ${credential.id}")
+    interface.putString(
+      indent + credential.getDescription,
+      "Description")
+    interface.putPasswordString(
+      indent + credential.getUserEntry(myCrypto),
+      "Username")
+    interface.putPasswordString(
+      indent + credential.getPasswordEntry(myCrypto),
+      "Password")
     interface.putString(s"Old Credentials for ${credential.id}")
-    credential.pastCredentials.foreach(putCredential(myCrypto))
-    interface.putString(s"==== Credential end ======\n")
+    credential.pastCredentials.foreach(
+      c => putCredential(myCrypto)(c, indent + "\t"))
+    interface.putString(s"$indent==== Credential end ======\n")
   }
 
-  def getUserSpec(
-    metadataManagerHandle: String => MetadataManager,
-  ): UserHandle = {
+  override def getUserSpec(): UserInfoInput = {
     val username: String = interface.getString("Username")
+
+    val vaultFileTemp: String = interface.getString(
+      s"Enter vault file (default)[${Constants.vaultFile(username)}]")
+
+    val vaultFile =
+      if (vaultFileTemp.isEmpty)
+        s"${Constants.vaultFile(username)}"
+      else
+        vaultFileTemp
+
+    val dbPassword: TransformedString =
+      interface.getPasswordInput("A Database password")
+
     val vaultPassword: TransformedString =
       CryptoHelper.definitiveTransformation(
-        interface.getPasswordInput("Vault Password"))
-    val mm = metadataManagerHandle(username)
+        interface.getPasswordInput("The Vault Password"))
 
-    UserHandle.getAndPersistUserSpec(
+    UserInfoInput(
       username = username,
-      vaultPassword = vaultPassword,
-      metadataManager = mm,
-      dropboxToken = UserHandle.verifyPasswordAndGetDropboxToken(
-        metadataManager = mm,
-        username = username,
-        vaultPassword = vaultPassword
-      )
+      vaultFile = vaultFile,
+      dbPassword = dbPassword,
+      vaultPassword = vaultPassword
     )
   }
 
-  def getCredential(myCrypto: MyCryptoHandle)(
+  override def getCredential(myCrypto: MyCryptoHandle)(
     id: Int,
     descriptionOpt: Option[String] = None,
   ): Credential = {
@@ -91,7 +105,7 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
 
   }
 
-  def chooseCredential(
+  override def chooseCredential(
     credentials: CredentialManager
   ): Option[Credential] = {
     interface.putString("Choose a credential")
@@ -109,7 +123,7 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
 
   }
 
-  def viewAllCredentials(myCrypto: MyCryptoHandle)(
+  override def viewAllCredentials(myCrypto: MyCryptoHandle)(
     credentials: CredentialConfigs
   ): Unit = {
     interface.putString("Viewing all credentials")
@@ -118,7 +132,7 @@ class UserInterfaceImpl(interface: IoInterface) extends UserInterface {
       interface.putString("Empty")
       return
     }
-    credentials.foreach(putCredential(myCrypto))
+    credentials.foreach(c => putCredential(myCrypto)(c))
   }
 
 }

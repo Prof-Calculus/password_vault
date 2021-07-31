@@ -12,6 +12,7 @@ import com.pv.tools.crypto.CryptoHelper.EncryptedString
 import com.pv.common.vault.memoized_metadata.MemoizedMetadata
 import com.pv.common.vault.metadata_manager.MetadataManager
 import com.pv.common.vault.metadata_manager.UserTable
+import com.pv.tools.crypto.CryptoHelper.TransformedString
 import com.pv.tools.crypto.MyCryptoHandle
 
 
@@ -46,3 +47,10 @@ case class UserInfo(
     )
 
 }
+
+case class UserInfoInput(
+  username: String,
+  vaultFile: String,
+  dbPassword: String,
+  vaultPassword: TransformedString
+)
