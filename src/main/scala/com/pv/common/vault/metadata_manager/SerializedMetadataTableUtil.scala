@@ -25,7 +25,7 @@ trait SerializedMetadataTableUtil {
   def selectAllSql: String = s"SELECT * from ${this.tableName}"
 
   def insertSql(name: indexType, entry: String): String =
-    s"INSERT or REPLACE INTO ${tableName} " +
+    s"MERGE INTO ${tableName} " +
       s"(${_index_column}, ${_entry_column}) " +
       s"VALUES " +
       s"('$name', '$entry')"

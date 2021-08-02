@@ -6,17 +6,21 @@ package com.pv.common.vault.metadata_manager
 
 object MetadataManager {
 
-  def getOptimalMetadataManager(
+  def get(
     username: String,
+    dbPassword: String,
+    vaultFile: String,
   ): MetadataManager = {
-    DbManagerImpl.getOrCreateDbManager(username)
+    DbManagerImpl.getOrCreateDbManager(
+      username = username,
+      dbPassword = dbPassword,
+      vaultFile = vaultFile
+    )
   }
 
 }
 
 trait MetadataManager {
-
-  val vaultFile: String
 
   def initialize(): Unit
 
@@ -36,5 +40,4 @@ trait MetadataManager {
     id: table.indexType,
     entry: String
   ): Unit
-
 }

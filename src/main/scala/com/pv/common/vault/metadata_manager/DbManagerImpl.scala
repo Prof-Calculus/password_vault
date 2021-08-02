@@ -14,17 +14,18 @@ import scala.collection.mutable.ListBuffer
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
-import com.pv.util.Constants
 
 object DbManagerImpl {
 
   def getOrCreateDbManager(
     username: String,
+    dbPassword: String,
+    vaultFile: String,
   ): MetadataManager = {
     val db = new DbManagerImpl(
-      Constants.MAC_WORKING_DIRECTORY_PATH,
-      username,
-    )
+      username = username,
+      dbPassword = dbPassword,
+      dbFile = vaultFile)
     db.initialize()
     db
   }
@@ -35,17 +36,20 @@ object DbManagerImpl {
 }
 
 class DbManagerImpl(
-  workingDirectoryPath: String,
+  dbFile: String,
   username: String,
+  dbPassword: String,
 ) extends MetadataManager {
 
-  val vaultFile: String =
-    s"${workingDirectoryPath}/vault_${username}.db"
+  final val JDBC_DRIVER = "org.h2.Driver"
+  Class.forName(JDBC_DRIVER)
 
-  private val dbPath: String = s"jdbc:sqlite:$vaultFile"
+  private val dbPath: String = s"jdbc:h2:$dbFile"
 
   private def getDbConnectionOpt: Option[Connection] =
-    Try {DriverManager.getConnection(dbPath)}.toOption
+    Try {
+      DriverManager.getConnection(dbPath, s"vault_$username", dbPassword)
+    }.toOption
 
   private def tryCloseConnection(connection: Connection): Unit =
     Try {connection.close()}
@@ -147,7 +151,7 @@ class DbManagerImpl(
   }
 
   def initialize(): Unit = {
-    if (!DbManagerImpl.doesFileExist(dbPath))
+    if (!DbManagerImpl.doesFileExist(dbFile))
       createDbIfNeeded()
 
     if (!isTablePresent(UserTable.tableName))

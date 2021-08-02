@@ -14,14 +14,12 @@ object CredentialManager{
   def get(metadataManager: MetadataManager, myCrypto: MyCryptoHandle)(
     credentials: CredentialConfigs =
       CredentialConfigs.loadFromVault(metadataManager, myCrypto),
-  ): CredentialManager =
-    new CredentialManager(credentials, myCrypto)
+  ): CredentialManager = new CredentialManager(myCrypto)(credentials)
 
 }
 
-class CredentialManager(
-  credentials: CredentialConfigs,
-  myCrypto: MyCryptoHandle,
+class CredentialManager(myCrypto: MyCryptoHandle)(
+  credentials: CredentialConfigs
 ) {
   def addOrReplace(credNew: Credential): Credential =
     credentials.addOrReplace(myCrypto)(credNew)
@@ -42,5 +40,7 @@ class CredentialManager(
     credentials.find(_.description == description)
 
   def isEmpty: Boolean = credentials.isEmpty
+
+  def getLastUpdateTimestamp: Long = credentials.timestamp
 }
 

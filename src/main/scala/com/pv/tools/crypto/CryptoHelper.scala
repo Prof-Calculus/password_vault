@@ -5,6 +5,7 @@
 package com.pv.tools.crypto
 
 import com.pv.tools.crypto.CryptoHelper.EncryptedString
+import com.pv.tools.crypto.CryptoHelper.TransformedString
 import java.nio.ByteBuffer
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -92,7 +93,7 @@ object CryptoHelper {
   }
 }
 
-case class MyCryptoHandle(private val password: String) {
+case class MyCryptoHandle(private val password: TransformedString) {
   def encrypt(str: String): EncryptedString =
     CryptoHelper.encrypt(str, password)
   def decrypt(str: EncryptedString): String =

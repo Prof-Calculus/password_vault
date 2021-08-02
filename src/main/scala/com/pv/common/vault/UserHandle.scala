@@ -43,12 +43,15 @@ object UserHandle {
     handle
   }
 
+  def getCryptoHandle(password: TransformedString): MyCryptoHandle =
+    MyCryptoHandle(password)
+
 }
 
 class UserHandle(private val vaultPassword: TransformedString)(
   metadataManager: MetadataManager,
   userInfo: UserInfo,
-  val myCryptoHandle: MyCryptoHandle = MyCryptoHandle(vaultPassword)
+  val myCryptoHandle: MyCryptoHandle = UserHandle.getCryptoHandle(vaultPassword)
 ) {
 
   def forceSyncDownToVault(metadataManager: MetadataManager): Unit = {

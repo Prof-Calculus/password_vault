@@ -1,7 +1,5 @@
 # Password vault
 
-Coming soon
-
 
 #### A single password to remember it all.
 
@@ -15,24 +13,22 @@ Coming soon
 ---
 # The software
 
-**Version:** 1.0_ER (Early Release)
-
 **Downloads Folder:** https://www.dropbox.com/sh/y54c1b6csebxh37/AAAp-TpV7H3hbnBnjHmBW_t3a?dl=0
 
-**Md5sum:** 0305ba513848ad57c12703dd149c9b65
+**Latest Version:** 1.0 (Early Release)
 
 ---
 # Execute
 
 Execute like a regular jar file.
 ```
- Srini: ~/password_vault (addBuild) => java -jar password_vault-1.0.0.jar 
+ Srini: ~/password_vault (addBuild) => java -jar password_vault-1.0.jar 
 ```
 
 ---
 # Developer
 
-### Maven build
+## Maven build
 
 Install maven on your machine using https://docs.scala-lang.org/tutorials/scala-with-maven.html
 
@@ -46,14 +42,14 @@ To execute:
 Srini: ~/password_vault (addBuild) => mvn exec:java
 ```
 
-To create the shippable jar:
+To create the release jar:
 ```
 Srini: ~/password_vault (addBuild) => mvn clean compile package assembly:single
 ```
-that creates the 
+that creates 
 ```
- Srini: ~/password_vault (addBuild) => ls -lah target/password_vault-1.0.0.jar 
--rw-r--r--  1 srinivasan  staff    25M Jul 11 16:47 target/password_vault-1.0.0.jar
+ Srini: ~/password_vault (addBuild) => ls -lah target/password_vault-1.0.jar 
+-rw-r--r--  1 srinivasan  staff    25M Jul 11 16:47 target/password_vault-1.0.jar
 ```
 
 For other maven commands, refer its official documentation 

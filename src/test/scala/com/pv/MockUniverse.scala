@@ -4,9 +4,6 @@
  */
 package com.pv
 
-import com.pv.interaction.IoInterface
-import com.pv.tools.crypto.CryptoHelper
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import com.pv.common.manager.Handlers
 import com.pv.common.manager.VaultManager
 import com.pv.common.manager.userinterface.UserInterfaceImpl
@@ -14,11 +11,13 @@ import com.pv.common.vault.CredentialManager
 import com.pv.common.vault.UserHandle
 import com.pv.common.vault.memoized_metadata.credential.Credential
 import com.pv.common.vault.memoized_metadata.credential.CredentialConfigs
+import com.pv.common.vault.memoized_metadata.user.UserInfoInput
 import com.pv.common.vault.metadata_manager.MetadataManager
-import com.pv.common.vault.metadata_manager.SerializedMetadataTableUtil
-import com.pv.common.vault.metadata_manager.UserTable
-import com.pv.common.vault.metadata_manager.VaultTable
+import com.pv.interaction.IoInterface
 import com.pv.tools.crypto.MyCryptoHandle
+import java.nio.file.Files
+import org.scalatest.matchers.must.Matchers.not
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import scala.collection.mutable
 import scala.util.Random
 
@@ -56,83 +55,18 @@ class MockInterface extends IoInterface {
 
 }
 
-object MockMetadataManager {
-  def get(user: String): MetadataManager = new MockMetadataManager()
-}
-
-
-class MockMetadataManager extends MetadataManager {
-
-  var userDb: mutable.HashMap[UserTable.indexType, String] =
-    new mutable.HashMap[UserTable.indexType, String]()
-
-  var vaultDb: mutable.HashMap[VaultTable.indexType, String] =
-    new mutable.HashMap[VaultTable.indexType, String]()
-
-  val vaultFile: String = "This is test"
-
-  def initialize(): Unit = ()
-
-  def getEntryByIndexOpt(
-    table: SerializedMetadataTableUtil
-  )(
-    id: table.indexType
-  ): Option[table.rowType] = {
-    if(table.tableName == UserTable.tableName) {
-      userDb.get(id.asInstanceOf[UserTable.indexType]).map(
-        entry => (id, entry))
-    } else if(table.tableName == VaultTable.tableName) {
-      vaultDb.get(id.asInstanceOf[VaultTable.indexType]).map(
-        entry => (id, entry))
-    } else {
-      None
-    }
-  }
-
-  def getAllEntries(
-    table: SerializedMetadataTableUtil
-  ): List[table.rowType] = {
-    if(table.tableName == UserTable.tableName) {
-      userDb.map{
-        case (id, entry) => (id.asInstanceOf[table.indexType], entry)
-      }.toList
-    } else if(table.tableName == VaultTable.tableName) {
-      vaultDb.map{
-        case (id, entry) => (id.asInstanceOf[table.indexType], entry)
-      }.toList
-    } else {
-      List.empty
-    }
-  }
-
-  def setEntryByIndex(
-    table: SerializedMetadataTableUtil
-  )(
-    id: table.indexType,
-    entry: String
-  ): Unit = {
-    if(table.tableName == UserTable.tableName) {
-      userDb.update(id.asInstanceOf[UserTable.indexType], entry)
-    } else if(table.tableName == VaultTable.tableName) {
-      vaultDb.update(id.asInstanceOf[VaultTable.indexType], entry)
-    }
-  }
-
-}
-
 object MockUserInterface {
 
-  def get(interface: MockInterface): MockUserInterface =
-    new MockUserInterface(interface)
+  def get(interface: MockInterface)(
+    userInfo: UserInfoInput
+  ): MockUserInterface =
+    new MockUserInterface(interface)(userInfo)
 
 }
 
-class MockUserInterface(
-  interface: MockInterface
+class MockUserInterface(interface: MockInterface)(
+  var userInfo: UserInfoInput
 ) extends UserInterfaceImpl(interface) {
-
-  var vaultUsername: String = ""
-  var vaultPassword: String = ""
 
   var nextCredId: Option[Int] = None
   var nextCred: Option[(String, String, String)] = None
@@ -151,34 +85,22 @@ class MockUserInterface(
     nextCred = Some((description, username, password))
   }
 
-  def setNextUserToGet(
-    username: String = getRandomString,
-    password: String = getRandomString,
-  ): Unit = {
-    vaultUsername = username
-    vaultPassword = password
-  }
 
-
-  override def putCredential(
-    myCrypto: MyCryptoHandle
-  )(
-    credential: Credential
+  override def putCredential(myCrypto: MyCryptoHandle)(
+    credential: Credential,
+    indent: String = ""
   ): Unit = {}
 
-  override def getUserSpec(
-    metadataManagerHandle: String => MetadataManager,
-  ): UserHandle = {
-    val mockInterface = MockInterface.get()
-    mockInterface.nextStringToInput.enqueue(vaultUsername)
-    mockInterface.nextStringToInput.enqueue(vaultPassword)
+  override def getUserSpec(): UserInfoInput = {
+    interface.nextStringToInput.enqueue(userInfo.username)
+    interface.nextStringToInput.enqueue(userInfo.vaultFile)
+    interface.nextStringToInput.enqueue(userInfo.dbPassword)
+    interface.nextStringToInput.enqueue(userInfo.vaultPassword)
 
-    super.getUserSpec(metadataManagerHandle)
+    super.getUserSpec()
   }
 
-  override def getCredential(
-    myCrypto: MyCryptoHandle,
-  )(
+  override def getCredential(myCrypto: MyCryptoHandle)(
     id: Int,
     descriptionOpt: Option[String] = None,
   ): Credential = {
@@ -213,30 +135,55 @@ class MockUserInterface(
     super.chooseCredential(credentials)
   }
 
-  override def viewAllCredentials(
-    myCrypto: MyCryptoHandle
-  )(
+  override def viewAllCredentials(myCrypto: MyCryptoHandle)(
     credentials: CredentialConfigs
   ): Unit = {}
 
 }
 
 
+object MockUserInfoInput{
+  def createMock(user: String, vaultFile: String): UserInfoInput =
+    UserInfoInput(
+      username = user,
+      vaultFile = vaultFile,
+      dbPassword = s"${user}dbPassword",
+      vaultPassword = s"${user}vaultPassword"
+    )
+}
+
+
 object MockHandlers {
-  def initialize(
-    vaultUsername: String,
-    vaultPassword: String
-  ): Handlers = {
+  def initialize(userInfo: UserInfoInput): Handlers = {
     val interfaceUtil: MockUserInterface =
-      MockUserInterface.get(MockInterface.get())
+      MockUserInterface.get(MockInterface.get())(userInfo)
 
-    interfaceUtil.vaultUsername = vaultUsername
-    interfaceUtil.vaultPassword = vaultPassword
+    val userInfoinput: UserInfoInput = interfaceUtil.getUserSpec()
 
-    val userHandle: UserHandle =
-      interfaceUtil.getUserSpec(MockMetadataManager.get)
+    userInfoinput.username shouldBe userInfo.username
+    userInfoinput.vaultFile shouldBe userInfo.vaultFile
+    userInfoinput.dbPassword shouldBe userInfo.dbPassword
+    userInfoinput.vaultPassword should not be userInfo.vaultPassword
 
-    val metadataManager: MetadataManager = userHandle.getMetadataManager
+    val metadataManager: MetadataManager =
+      MockMetadataManager.get(
+        MetadataManager.get(
+          username = userInfo.username,
+          dbPassword = userInfo.dbPassword,
+          vaultFile = userInfo.vaultFile,
+        )
+      )
+
+    val userHandle = UserHandle.getAndPersistUserSpec(
+      username = userInfo.username,
+      vaultPassword = userInfo.vaultPassword,
+      metadataManager = metadataManager,
+      dropboxToken = UserHandle.verifyPasswordAndGetDropboxToken(
+        metadataManager = metadataManager,
+        username = userInfo.username,
+        vaultPassword = userInfo.vaultPassword
+      )
+    )
 
     val credentialConfigs: CredentialManager =
       CredentialManager.get(metadataManager, userHandle.myCryptoHandle)()
@@ -250,32 +197,29 @@ object MockHandlers {
   }
 }
 
+
 object MockUniverse {
+  def create(userInfo: UserInfoInput): MockUniverse = new MockUniverse(userInfo)
+
   def create(
-    username: String = "Srinivasan",
-    vaultPassword: String = "ThisIsPassword"
-  ): MockUniverse = new MockUniverse(username, vaultPassword)
+    user: String = "Srinivasan",
+    vaultFileOpt: Option[String] = None
+  ): MockUniverse =
+    MockUniverse.create(
+      MockUserInfoInput.createMock(
+        user,
+        vaultFileOpt.getOrElse(
+          Files.createTempFile(user, ".h2.db").toFile.getPath
+        )
+      )
+    )
 }
 
-class MockUniverse(username: String, vaultPassword: String) {
-
-  def getVaultUsername: String = username
-
-  def getVaultPassword: String = vaultPassword
-
-  val passwordTransformation: String =
-    CryptoHelper.definitiveTransformation(vaultPassword)
-
-  val handlers: Handlers = MockHandlers.initialize(
-    vaultUsername = username,
-    vaultPassword = vaultPassword
-  )
+class MockUniverse(val userInfo: UserInfoInput) {
+  val handlers: Handlers = MockHandlers.initialize(userInfo)
 
   val mockInterface: MockUserInterface =
     handlers.interface.asInstanceOf[MockUserInterface]
-
-  val mockMetadataManager: MockMetadataManager =
-    handlers.metadataManager.asInstanceOf[MockMetadataManager]
 
   val vaultManager: VaultManager = VaultManager.initialize(handlers)
 
