@@ -8,14 +8,14 @@
 - Retrieve your passwords whenever you want.
 - Strong `"AES/CBC/PKCS5Padding"` security.
 
-**The vault file:** `~/vault_${username}.db`
+**The default vault file:** `~/myvault/passwords_${username}.mv.db`
 
 ---
 # The software
 
 **Downloads Folder:** https://www.dropbox.com/sh/y54c1b6csebxh37/AAAp-TpV7H3hbnBnjHmBW_t3a?dl=0
 
-**Latest Version:** 1.0 (Early Release)
+**Latest Version:** 1.0
 
 ---
 # Execute
@@ -67,5 +67,5 @@ be ale to do regular build/debug/etc.
 ---
 ### Unit tests
 
-Run tests under `VaultTest` either using Maven or via IntelliJ 
+Run tests under `VaultTests` either using Maven or via IntelliJ 
 
